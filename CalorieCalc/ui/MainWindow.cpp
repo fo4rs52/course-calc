@@ -1,18 +1,21 @@
 #include "MainWindow.h"
+#include "ProductDialog.h" 
 #include <QMessageBox>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), m_storage("products.json")
 {
     setupUi();
-    loadData(); 
+    loadData();
 
     connect(m_testButton, &QPushButton::clicked, this, [this]() {
-        auto newProduct = std::make_shared<Models::Product>("Банан", 1.5, 0.5, 21.0);
-        m_catalog.addProduct(newProduct);
-        m_storage.saveCatalog(m_catalog);
-        updateList();
-        QMessageBox::information(this, "Успех", "Банан добавлен и сохранен в файл products.json!");
+        ProductDialog dialog(this);
+        if (dialog.exec() == QDialog::Accepted) {
+            auto newProduct = dialog.getProduct();
+            m_catalog.addProduct(newProduct);
+            m_storage.saveCatalog(m_catalog);
+            updateList();
+        }
         });
 }
 
@@ -24,9 +27,9 @@ void MainWindow::setupUi() {
     m_titleLabel = new QLabel("Доступные продукты:", this);
     m_titleLabel->setStyleSheet("font-size: 16px; font-weight: bold;");
 
-    m_productListView = new QListWidget(this); 
+    m_productListView = new QListWidget(this);
 
-    m_testButton = new QPushButton("Добавить тестовый продукт (Банан)", this);
+    m_testButton = new QPushButton("Добавить свой продукт", this);
     m_testButton->setMinimumHeight(40);
 
     m_mainLayout->addWidget(m_titleLabel);
@@ -41,7 +44,7 @@ void MainWindow::loadData() {
     if (!m_storage.loadCatalog(m_catalog)) {
         m_catalog.addProduct(std::make_shared<Models::Product>("Куриная грудка", 23.6, 1.9, 0.4));
         m_catalog.addProduct(std::make_shared<Models::Product>("Гречка (сухая)", 12.6, 3.3, 62.1));
-        m_storage.saveCatalog(m_catalog); 
+        m_storage.saveCatalog(m_catalog);
     }
     updateList();
 }

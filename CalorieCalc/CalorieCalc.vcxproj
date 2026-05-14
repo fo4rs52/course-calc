@@ -126,7 +126,7 @@
     <ClInclude Include="services\ProgressAnalyzer.h" />
     <ClInclude Include="services\StorageManager.h" />
     <ClInclude Include="ui\DashboardWidget.h" />
-    <ClInclude Include="ui\ProductDialog.h" />
+    <QtMoc Include="ui\ProductDialog.h" />
     <QtMoc Include="ui\MainWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
