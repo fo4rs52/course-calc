@@ -1,48 +1,60 @@
 #include "MainWindow.h"
-#include "models/Product.h"
-#include "models/Portion.h"
+#include <QMessageBox>
 
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget* parent)
+    : QMainWindow(parent), m_storage("products.json")
+{
     setupUi();
+    loadData(); 
 
-    connect(m_testButton, &QPushButton::clicked, this, &MainWindow::runModelTest);
+    connect(m_testButton, &QPushButton::clicked, this, [this]() {
+        auto newProduct = std::make_shared<Models::Product>("Банан", 1.5, 0.5, 21.0);
+        m_catalog.addProduct(newProduct);
+        m_storage.saveCatalog(m_catalog);
+        updateList();
+        QMessageBox::information(this, "Успех", "Банан добавлен и сохранен в файл products.json!");
+        });
 }
 
 void MainWindow::setupUi() {
     m_centralWidget = new QWidget(this);
     setCentralWidget(m_centralWidget);
-
     m_mainLayout = new QVBoxLayout(m_centralWidget);
 
-    m_infoLabel = new QLabel("Добро пожаловать в Калькулятор Калорий\nНажмите кнопку для теста", this);
-    m_infoLabel->setAlignment(Qt::AlignCenter);
-    m_infoLabel->setStyleSheet("font-size: 16px; color: #333;");
+    m_titleLabel = new QLabel("Доступные продукты:", this);
+    m_titleLabel->setStyleSheet("font-size: 16px; font-weight: bold;");
 
-    m_testButton = new QPushButton("Проверить расчет (Apple 200g)", this);
+    m_productListView = new QListWidget(this); 
+
+    m_testButton = new QPushButton("Добавить тестовый продукт (Банан)", this);
     m_testButton->setMinimumHeight(40);
 
-    m_mainLayout->addWidget(m_infoLabel);
+    m_mainLayout->addWidget(m_titleLabel);
+    m_mainLayout->addWidget(m_productListView);
     m_mainLayout->addWidget(m_testButton);
 
-    setWindowTitle("Advanced Calorie Counter");
-    resize(400, 300);
+    setWindowTitle("Калькулятор Калорий - Каталог");
+    resize(450, 600);
 }
 
-void MainWindow::runModelTest() {
-    using namespace Models;
+void MainWindow::loadData() {
+    if (!m_storage.loadCatalog(m_catalog)) {
+        m_catalog.addProduct(std::make_shared<Models::Product>("Куриная грудка", 23.6, 1.9, 0.4));
+        m_catalog.addProduct(std::make_shared<Models::Product>("Гречка (сухая)", 12.6, 3.3, 62.1));
+        m_storage.saveCatalog(m_catalog); 
+    }
+    updateList();
+}
 
-    auto apple = std::make_shared<Product>("Яблоко", 0.4, 0.4, 9.8);
-
-    Portion p(apple, 200.0);
-
-    QString result = QString("Успех\n\n"
-        "Продукт: %1\n"
-        "Калорий на 100г: %2\n"
-        "Вес порции: 200г\n"
-        "ИТОГО калорий в порции: %3")
-        .arg(apple->getDisplayName())
-        .arg(apple->caloriesPer100g(), 0, 'f', 1)
-        .arg(p.totalCalories(), 0, 'f', 1);
-
-    m_infoLabel->setText(result);
+void MainWindow::updateList() {
+    m_productListView->clear();
+    for (const auto& product : m_catalog.getAllProducts()) {
+        QString itemText = QString("%1 | Белки: %2 | Жиры: %3 | Углеводы: %4 | %5 ккал/100г")
+            .arg(product->getDisplayName())
+            .arg(product->proteins(), 0, 'f', 1)
+            .arg(product->fats(), 0, 'f', 1)
+            .arg(product->carbs(), 0, 'f', 1)
+            .arg(product->caloriesPer100g(), 0, 'f', 1);
+        m_productListView->addItem(itemText);
+    }
 }

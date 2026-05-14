@@ -5,24 +5,29 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <memory>
+#include <QListWidget>
+#include "services/ProductCatalog.h"
+#include "services/StorageManager.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
-    virtual ~MainWindow() = default;
 
 private:
     void setupUi();
-
-    void runModelTest();
+    void loadData();    
+    void updateList();  
 
     QWidget* m_centralWidget;
     QVBoxLayout* m_mainLayout;
-    QLabel* m_infoLabel;
+    QLabel* m_titleLabel;
+    QListWidget* m_productListView;
     QPushButton* m_testButton;
+
+    Services::ProductCatalog m_catalog;
+    Services::StorageManager m_storage;
 };
 
 #endif
