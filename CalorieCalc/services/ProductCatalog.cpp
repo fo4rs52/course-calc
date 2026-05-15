@@ -1,4 +1,4 @@
-#include "ProductCatalog.h"
+﻿#include "ProductCatalog.h"
 
 namespace Services {
 

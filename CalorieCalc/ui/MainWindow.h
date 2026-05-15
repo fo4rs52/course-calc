@@ -1,4 +1,4 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
@@ -17,14 +17,16 @@ public:
 
 private:
     void setupUi();
-    void loadData();    
-    void updateList();  
+    void loadData();
+    void updateList();
 
     QWidget* m_centralWidget;
     QVBoxLayout* m_mainLayout;
     QLabel* m_titleLabel;
     QListWidget* m_productListView;
     QPushButton* m_testButton;
+
+    QPushButton* m_calcButton;
 
     Services::ProductCatalog m_catalog;
     Services::StorageManager m_storage;

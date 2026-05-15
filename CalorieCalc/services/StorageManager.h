@@ -1,4 +1,4 @@
-#ifndef STORAGEMANAGER_H
+﻿#ifndef STORAGEMANAGER_H
 #define STORAGEMANAGER_H
 
 #include <QString>

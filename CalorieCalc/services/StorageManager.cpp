@@ -1,4 +1,4 @@
-#include "StorageManager.h"
+﻿#include "StorageManager.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>

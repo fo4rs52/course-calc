@@ -1,4 +1,4 @@
-#include "Meal.h"
+﻿#include "Meal.h"
 #include <QJsonArray>
 
 namespace Models {

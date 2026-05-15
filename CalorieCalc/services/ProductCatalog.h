@@ -1,4 +1,4 @@
-#ifndef PRODUCTCATALOG_H
+﻿#ifndef PRODUCTCATALOG_H
 #define PRODUCTCATALOG_H
 
 #include <vector>

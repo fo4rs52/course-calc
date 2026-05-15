@@ -1,4 +1,4 @@
-#ifndef PRODUCTDIALOG_H
+﻿#ifndef PRODUCTDIALOG_H
 #define PRODUCTDIALOG_H
 
 #include <QDialog>

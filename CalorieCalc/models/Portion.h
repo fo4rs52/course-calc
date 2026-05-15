@@ -1,4 +1,4 @@
-#ifndef PORTION_H
+﻿#ifndef PORTION_H
 #define PORTION_H
 
 #include "Product.h"
