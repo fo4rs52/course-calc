@@ -104,6 +104,7 @@
     <ClCompile Include="services\ProductCatalog.cpp" />
     <ClCompile Include="services\ProgressAnalyzer.cpp" />
     <ClCompile Include="services\StorageManager.cpp" />
+    <ClCompile Include="ui\ActivityDialog.cpp" />
     <ClCompile Include="ui\DashboardWidget.cpp" />
     <ClCompile Include="ui\MainWindow.cpp" />
     <ClCompile Include="ui\ProductDialog.cpp" />
@@ -112,6 +113,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="ui\ActivityDialog.h" />
     <ClInclude Include="models\ActivityRecord.h" />
     <ClInclude Include="models\Entity.h" />
     <ClInclude Include="models\Meal.h" />
@@ -125,7 +127,7 @@
     <ClInclude Include="services\ProductCatalog.h" />
     <ClInclude Include="services\ProgressAnalyzer.h" />
     <ClInclude Include="services\StorageManager.h" />
-    <ClInclude Include="ui\DashboardWidget.h" />
+    <QtMoc Include="ui\DashboardWidget.h" />
     <QtMoc Include="ui\ProductDialog.h" />
     <QtMoc Include="ui\MainWindow.h" />
   </ItemGroup>

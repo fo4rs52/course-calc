@@ -1,9 +1,10 @@
 #include "MainWindow.h"
 #include "ProductDialog.h"
-#include "models/UserProfile.h"
+#include "ActivityDialog.h"
 #include "services/CalorieMath.h"
 #include "services/GoalManager.h"
-#include "services/ProgressAnalyzer.h"
+#include <QGroupBox>
+#include <QFormLayout>
 #include <QMessageBox>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -11,99 +12,143 @@ MainWindow::MainWindow(QWidget* parent)
 {
     setupUi();
 
-    m_notifier = std::make_shared<Services::NotificationManager>(2000.0); 
+    m_notifier = std::make_shared<Services::NotificationManager>(2000.0);
     m_diary.addObserver(m_notifier.get());
 
     loadData();
-
-    connect(m_addProductButton, &QPushButton::clicked, this, [this]() {
-        ProductDialog dialog(this);
-        if (dialog.exec() == QDialog::Accepted) {
-            auto newProduct = dialog.getProduct();
-            m_catalog.addProduct(newProduct);
-            m_storage.saveCatalog(m_catalog);
-            updateList();
-        }
-        });
-
-    connect(m_calcButton, &QPushButton::clicked, this, &MainWindow::handleCalculation);
+    refreshDashboard();
 }
 
 void MainWindow::setupUi() {
     m_centralWidget = new QWidget(this);
     setCentralWidget(m_centralWidget);
-    m_mainLayout = new QVBoxLayout(m_centralWidget);
+    auto rootLayout = new QHBoxLayout(m_centralWidget);
 
-    m_titleLabel = new QLabel("Каталог продуктов и анализ нормы:", this);
-    m_titleLabel->setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;");
+    auto leftLayout = new QVBoxLayout();
+    auto catGroup = new QGroupBox("Каталог продуктов", this);
+    auto catLayout = new QVBoxLayout(catGroup);
 
     m_productListView = new QListWidget(this);
+    m_addProductButton = new QPushButton("Новый продукт", this);
+    m_delProductButton = new QPushButton("Удалить выбранный", this);
+    m_delProductButton->setStyleSheet("background-color: #e74c3c; color: white;");
+    m_addActivityButton = new QPushButton("Добавить тренировку", this);
+    m_addActivityButton->setStyleSheet("background-color: #f39c12; color: white;");
 
-    m_addProductButton = new QPushButton("Создать новый продукт", this);
-    m_addProductButton->setMinimumHeight(40);
-    m_addProductButton->setStyleSheet("background-color: #27ae60; color: white;");
+    catLayout->addWidget(m_productListView);
+    catLayout->addWidget(m_addProductButton);
+    catLayout->addWidget(m_delProductButton);
+    catLayout->addWidget(m_addActivityButton);
+    leftLayout->addWidget(catGroup);
 
-    m_calcButton = new QPushButton("Проверить дневную норму", this);
-    m_calcButton->setMinimumHeight(40);
-    m_calcButton->setStyleSheet("background-color: #2980b9; color: white;");
+    auto rightLayout = new QVBoxLayout();
 
-    m_mainLayout->addWidget(m_titleLabel);
-    m_mainLayout->addWidget(m_productListView);
-    m_mainLayout->addWidget(m_addProductButton);
-    m_mainLayout->addWidget(m_calcButton);
+    auto profGroup = new QGroupBox("Ваш профиль", this);
+    auto profLayout = new QFormLayout(profGroup);
+    m_weightSpin = new QDoubleSpinBox(this); m_weightSpin->setRange(30, 200); m_weightSpin->setValue(80);
+    m_heightSpin = new QDoubleSpinBox(this); m_heightSpin->setRange(100, 250); m_heightSpin->setValue(180);
+    m_ageSpin = new QSpinBox(this); m_ageSpin->setRange(10, 99); m_ageSpin->setValue(25);
+    profLayout->addRow("Вес (кг):", m_weightSpin);
+    profLayout->addRow("Рост (см):", m_heightSpin);
+    profLayout->addRow("Возраст:", m_ageSpin);
 
-    setWindowTitle("Advanced Calorie Counter - OOP Project");
-    resize(500, 600);
+    m_dashboard = new DashboardWidget(this);
+    m_logFoodButton = new QPushButton("СЪЕСТЬ ВЫБРАННОЕ (200г)", this);
+    m_logFoodButton->setMinimumHeight(50);
+    m_logFoodButton->setStyleSheet("background-color: #2ecc71; color: white; font-weight: bold;");
+
+    m_resetButton = new QPushButton("Очистить день", this);
+
+    m_formulaCombo = new QComboBox(this);
+    m_formulaCombo->addItem("Миффлин-Сан Жеор");
+    m_formulaCombo->addItem("Харрис-Бенедикт");
+    profLayout->addRow("Формула расчета:", m_formulaCombo);
+
+    rightLayout->addWidget(profGroup);
+    rightLayout->addWidget(m_dashboard);
+    rightLayout->addWidget(m_logFoodButton);
+    rightLayout->addWidget(m_resetButton);
+    rightLayout->addStretch();
+
+    rootLayout->addLayout(leftLayout, 2);
+    rootLayout->addLayout(rightLayout, 3);
+
+    connect(m_addProductButton, &QPushButton::clicked, this, [this]() {
+        ProductDialog d(this);
+        if (d.exec() == QDialog::Accepted) {
+            m_catalog.addProduct(d.getProduct());
+            m_storage.saveCatalog(m_catalog);
+            updateList();
+        }
+        });
+
+    connect(m_delProductButton, &QPushButton::clicked, this, [this]() {
+        int row = m_productListView->currentRow();
+        if (row >= 0) {
+            auto list = m_catalog.getAllProducts();
+            m_catalog.clear();
+            for (int i = 0; i < list.size(); ++i) if (i != row) m_catalog.addProduct(list[i]);
+            m_storage.saveCatalog(m_catalog);
+            updateList();
+        }
+        });
+
+    connect(m_addActivityButton, &QPushButton::clicked, this, [this]() {
+        ActivityDialog d(this);
+        if (d.exec() == QDialog::Accepted) {
+            m_diary.addActivity(d.getActivity());
+            refreshDashboard();
+        }
+        });
+
+    connect(m_logFoodButton, &QPushButton::clicked, this, [this]() {
+        int row = m_productListView->currentRow();
+        if (row < 0) return;
+        auto meal = std::make_shared<Models::Meal>();
+        meal->addPortion(Models::Portion(m_catalog.getAllProducts().at(row), 200.0));
+        m_diary.addMeal(meal);
+        refreshDashboard();
+        });
+
+    connect(m_resetButton, &QPushButton::clicked, this, [this]() {
+        m_diary.clear();
+        refreshDashboard();
+        });
+
+    setWindowTitle("Calorie Counter");
+    resize(950, 600);
 }
 
-void MainWindow::handleCalculation() {
-    using namespace Services;
+void MainWindow::refreshDashboard() {
+    Models::UserProfile user(m_weightSpin->value(), m_heightSpin->value(), m_ageSpin->value(), true);
 
-    Models::UserProfile user(80.0, 180.0, 25, true);
+    std::unique_ptr<Services::ICalorieStrategy> strategy;
+    if (m_formulaCombo->currentIndex() == 0) {
+        strategy = std::make_unique<Services::MifflinStrategy>();
+    }
+    else {
+        strategy = std::make_unique<Services::HarrisBenedictStrategy>();
+    }
 
-    std::unique_ptr<ICalorieStrategy> strategy = std::make_unique<MifflinStrategy>();
     double bmr = strategy->calculateBMR(user);
 
-    auto goal = GoalFactory::createGoal(GoalFactory::Loss);
+    auto goal = Services::GoalFactory::createGoal(Services::GoalFactory::Loss);
     double target = goal->applyGoalModifier(bmr);
 
     m_notifier->setLimit(target);
-
-    m_diary.clear();
-    auto lunch = std::make_shared<Models::Meal>("Обед");
-    if (!m_catalog.getAllProducts().empty()) {
-        lunch->addPortion(Models::Portion(m_catalog.getAllProducts().at(0), 500.0));
-    }
-    m_diary.addMeal(lunch); 
-
-    auto result = ProgressAnalyzer::analyze(m_diary.totalDayCalories(), target);
-
-    QString report = QString(
-        "Цель: %1\n"
-        "Ваша норма: %2 ккал\n"
-        "Съедено: %3 ккал\n\n"
-        "Вердикт: %4\n"
-        "Уведомление: %5" 
-    ).arg(goal->getGoalName())
-        .arg(target, 0, 'f', 0)
-        .arg(result.consumed, 0, 'f', 0)
-        .arg(result.statusMessage)
-        .arg(m_notifier->getLastAdvice());
-
-    QMessageBox::information(this, "Анализ прогресса", report);
+    m_dashboard->updateStats(m_diary.totalDayCalories(), target,
+        m_diary.totalDayProteins(), m_diary.totalDayFats(),
+        m_diary.totalDayCarbs(), m_notifier->getLastAdvice());
 }
 
 void MainWindow::loadData() {
-    if (!m_storage.loadCatalog(m_catalog)) {
-        m_catalog.addProduct(std::make_shared<Models::Product>("Куриная грудка", 23, 2, 0));
-        m_storage.saveCatalog(m_catalog);
-    }
+    m_storage.loadCatalog(m_catalog);
     updateList();
 }
 
 void MainWindow::updateList() {
     m_productListView->clear();
     for (const auto& p : m_catalog.getAllProducts()) {
-        m_productListView->addItem(p->getDisplayName() + " | " + QString::number(p->caloriesPer100g(), 'f', 0) + " ккал");
+        m_productListView->addItem(p->getDisplayName() + " [" + QString::number(p->caloriesPer100g(), 'f', 0) + " ккал]");
     }
 }
